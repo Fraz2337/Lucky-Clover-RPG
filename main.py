@@ -5,22 +5,26 @@ from entities.entity import Entity
 from entities.player import Player
 from entities.goblin import Goblin
 
+from ui.tooltip import draw_item_tooltip
+from ui.hud import draw_hud
+from ui.character_ui import draw_character
+from ui.character_ui import equipment_layout
+from ui.drag_drop import draw_drag_item
+from ui.inventory_ui import draw_inventory
+from ui.inventory_ui import (
+    SLOT_SIZE,
+    SLOT_PADDING
+)
+
 pygame.init()
 
 #Screen Size
 WIDTH = 1200
 HEIGHT = 1000
 #Inventory size
-SLOT_SIZE = 50
-SLOT_PADDING = 10
-INVENTORY_X = 50
-INVENTORY_Y = 50
-INVENTORY_WIDTH = 500
-INVENTORY_HEIGHT = 500
-CHARACTER_X = 700
-CHARACTER_Y = 80
-CHARACTER_WIDTH = 450
-CHARACTER_HEIGHT = 600
+
+
+
 
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Henry RPG Game")
@@ -67,229 +71,6 @@ class Loot:
     def __repr__(self):
         return self.item.name
 
-def draw_inventory(screen, player, font):
-
-    pygame.draw.rect(
-        screen,
-        (50, 50, 50),
-        (INVENTORY_X, INVENTORY_Y,
-         INVENTORY_WIDTH,
-         INVENTORY_HEIGHT)
-    )
-
-    inventory_x = 175
-    inventory_y = 170
-
-    for i in range(player.inventory_limit):
-
-        row = i // 5
-        col = i % 5
-
-        slot_x = inventory_x + col * (SLOT_SIZE + SLOT_PADDING)
-        slot_y = inventory_y + row * (SLOT_SIZE + SLOT_PADDING)
-
-        pygame.draw.rect(
-            screen,
-            (150, 150, 150),
-            (slot_x,slot_y,SLOT_SIZE,SLOT_SIZE),
-            2
-        )
-
-        if i < len(player.inventory):
-
-            item = player.inventory[i]
-
-            if item.stackable:
-                text = f"{item.name} x {item.quantity}"
-            else:
-                text = item.name
-
-            surface = font.render(
-                text[:12],
-                True,
-                (255,255,255)
-            )
-
-            screen.blit(
-                surface,
-                (slot_x+5,slot_y+15)
-            )
-
-def draw_character(screen, player, font, dragging_item, invalid_drop):
-    pygame.draw.rect(
-        screen,
-        (50, 50, 50),
-        (CHARACTER_X, CHARACTER_Y, CHARACTER_WIDTH, CHARACTER_HEIGHT)
-    )
-
-    mouse_x, mouse_y = pygame.mouse.get_pos()
-
-    for slot, pos in equipment_layout.items():
-        x, y = pos
-
-        rect = pygame.Rect(x, y, 90, 30)
-
-        highlight = False
-
-        if dragging_item is not None and rect.collidepoint(mouse_x, mouse_y):
-            highlight = True
-
-        color = (100, 100, 100)
-
-        if highlight:
-            color = (0, 200, 0)
-
-        pygame.draw.rect(
-            screen,
-            color,
-            (x, y, 90, 30),
-            2
-        )
-
-        item = player.equipment.get(slot)
-
-        if item:
-            text = font.render(item.name[:10], True, (255, 255, 255))
-            screen.blit(text, (x + 5, y + 5))
-        else:
-            label = font.render(slot.replace("_", " ").title(), True, (150, 150, 150))
-            screen.blit(label, (x + 5, y + 5))
-
-    if invalid_drop:
-        pygame.draw.rect(screen, (200, 0, 0), (CHARACTER_X, CHARACTER_Y, CHARACTER_WIDTH, CHARACTER_HEIGHT), 3)
-
-    stats_x = CHARACTER_X + 25
-    stats_y = CHARACTER_Y + 450
-    line_height = 24
-
-    stats_lines = []
-
-    stat_labels = {
-        "damage": "Damage",
-        "health": "Health",
-        "mana": "Mana",
-        "accuracy": "Accuracy",
-        "attack_speed": "Attack Speed",
-        "crit_chance": "Crit Chance",
-        "physical_defence": "AC",
-        "magic_defence": "MAC"
-    }
-    
-        
-    stats_lines.append("Base Attributes")
-    stats_lines.append("-"*20) # base attribute loop
-    for key, value in player.base_stats.items():
-        stats_lines.append(f"{key.replace("_", " ").title()}: {value:+}")
-    stats_lines.append("")
-    
-    stats_lines.append("Equipment Bonuses")
-    stats_lines.append("-"*20) # equipment attributes loop
-    for key, value in player.equipment_stats.items():
-        stats_lines.append(f"{key.replace("_", " ").title()}: {value:+}")
-    stats_lines.append("")
-
-    stats_lines.append("Final Stats")
-    stats_lines.append("-"*20) #final stats loop
-    for key, value in player.final_stats.items():
-        if key in stat_labels:
-            label = stat_labels[key]
-        else:
-            label = key.replace("_", " ").title()
-
-        if key == "attack_speed":
-            stats_lines.append(f"{label}: {value:.2f}")
-        elif key == "crit_chance":
-            stats_lines.append(f"{label}: {value:.1f}%")
-        else:
-            stats_lines.append(f"{label}: {value:+}")
-            
-    #     f"Damage: {player.final_stats['damage']}",
-    #     f"Health: {player.final_stats['health']}",
-    #     f"Mana: {player.final_stats['mana']}",
-    #     f"Accuracy: {player.final_stats['accuracy']}",
-    #     f"Attack Speed: {player.final_stats['attack_speed']:.2f}",
-    #     f"Crit Chance: {player.final_stats['crit_chance']:.1f}%",
-    #     f"AC: {player.final_stats['physical_defence']}",
-    #     f"MAC: {player.final_stats['magic_defence']}",
-    # ]
-
-    for index, line in enumerate(stats_lines):
-        text = font.render(line, True, (255, 255, 255))
-        screen.blit(text, (stats_x, stats_y + index * line_height))
-
-def draw_hud(screen, player, font):
-    health_text = font.render(
-        f"Health: {player.health}",
-        True,
-        (255, 255, 255)
-    )
-    screen.blit(health_text, (10, 10))
-    stats_text = font.render(
-        f"Level: {player.level} XP: {player.xp}/{player.xp_to_next_level} Gold: {player.gold}",
-        True,
-        (255, 255, 255)
-    )
-    screen.blit(stats_text, (10, 45))
-
-    if player.health == 0:
-        game_over_text = font.render(
-            "GAME OVER",
-            True,
-            (255, 0, 0)
-        )
-        screen.blit(game_over_text, (330, 280))
-
-def draw_drag_item(screen, font, dragging_item, drag_offset_x, drag_offset_y):
-    mouse_x, mouse_y = pygame.mouse.get_pos()
-
-    x = mouse_x - drag_offset_x
-    y = mouse_y - drag_offset_y
-
-    w, h = 120,30
-
-    pygame.draw.rect(screen,(30, 30, 30), (x, y, w, h))
-    pygame.draw.rect(screen, (255, 255, 255), (x, y, w, h),2)
-
-    drag_text = font.render(
-        dragging_item.name[:12],
-        True,
-        (255, 255, 255)
-    )
-
-    screen.blit(drag_text, (x +5, y + 5))
-
-def draw_item_tooltip(screen, font, hovered_item):
-    mouse_x, mouse_y = pygame.mouse.get_pos()
-
-    bonuses = hovered_item.get_total_bonuses()
-    damage = bonuses.get("damage", 0)
-
-    lines = [
-        hovered_item.name,
-        f"Damage: +{damage}",
-        f"Durability: {hovered_item.durability}",
-        f"Quality: {hovered_item.quality}",
-        hovered_item.short_description,
-    ]
-
-    if hovered_item.stackable:
-        lines.append(f"Quantity: {hovered_item.quantity}")
-    
-    rendered_lines = [
-        font.render(line, True, (255, 255, 255))
-        for line in lines
-    ]
-    
-    tip_width = max(line.get_width() for line in rendered_lines) +10
-    tip_height = len(rendered_lines) * 30 +10
-    
-    tip_x = mouse_x + 15
-    tip_y = mouse_y + 15
-
-    pygame.draw.rect(screen, (20, 20, 20), (tip_x, tip_y, tip_width, tip_height))
-    pygame.draw.rect(screen, (200, 200, 200), (tip_x, tip_y, tip_width, tip_height),2)
-    for index, line_surface in enumerate(rendered_lines):
-        screen.blit(line_surface, (tip_x + 5, tip_y + 5 + index * 30))
 
 GOBLIN_LOOT_TABLE = {
     "rusty_sword": 1.00, # item drop and drop chance
@@ -395,27 +176,7 @@ drag_offset_y = 0
 invalid_drop = False
 dropped_successfully = False
 
-equipment_layout = {
-                #Left Side equipment slots
-                "helmet": (720,120),
-                "neck": (720, 170),
-                "shoulders": (720, 220),
-                "back": (720, 270),
-                "chest": (720, 320),
 
-                #Right Side equipment slots
-                "gloves": (950, 170),
-                "legs": (950, 220),
-                "ring_1": (950, 270),
-                "ring_2": (950, 320),
-                "trinket_1": (950, 370),
-                "trinket_2": (950, 420),
-
-                #Bottom center equipment slots
-                "weapon": (800, 500),
-                "shield": (900, 500),
-                "totem": (1000, 500)
-            }
 
 # Inventory logic click
 def get_inventory_slot_at_mouse(player, mouse_x, mouse_y):
