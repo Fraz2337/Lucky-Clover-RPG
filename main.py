@@ -18,6 +18,7 @@ from ui.inventory_ui import (
 
 from systems.combat import player_attack, enemy_attack
 from systems.inventory import collect_loot
+from systems.equipment import equipment_inventory_item
 
 pygame.init()
 
@@ -230,29 +231,23 @@ while running:
             if dragging_item is not None:
                 target_slot = get_equipment_slot_at_mouse(mouse_x, mouse_y)
 
-                if target_slot is not None and dragging_item.slot == target_slot:
-                    equipped_item = player.equipment[target_slot]
+                equipped_successfully = False
+                if target_slot is not None:
+                    equipped_successfully = equipment_inventory_item(
+                        player,
+                        dragging_index,
+                        target_slot,
+                )
 
-                    player.equipment[target_slot] = dragging_item
+                if equipped_successfully:
                     print("VALID DROP")
                     print("Target slot:", target_slot)
-                    print("Dragging item:", dragging_item.name)
-                    print("Item bonuses:", dragging_item.get_total_bonuses())
-                    if equipped_item is not None:
-                        player.inventory[dragging_index] = equipped_item
-                    else:
-                        player.inventory.pop(dragging_index)
-
-                    player.calculate_stats()
-                    print(player.final_stats)
                     print("Equipment:", player.equipment)
-                    print("Equipment stats:", player.equipment_stats)
                     print("Final stats:", player.final_stats)
 
-                else:
-                    invalid_drop = True
+                invalid_drop = not equipped_successfully
             
-            
+
                     
             # reset drag and mouse state       
             dragging_item = None
