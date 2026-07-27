@@ -10,6 +10,14 @@ class Goblin(Entity):
             health = 30,
             damage = 20
         )
+
+        self.spawn_x = x
+        self.spawn_y = y
+
+        self.detection_range = 250
+        self.leash_range = 400
+
+        self.state = "idle"
         
         self.attack_cooldown = 1.0
         self.last_attack_time = 0

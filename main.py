@@ -20,6 +20,8 @@ from systems.equipment import equipment_inventory_item
 from items.item_database import ITEM_DATABASE
 from items.item_database import create_item
 from systems.loot_system import process_enemy_death
+from systems.enemy_ai import update_enemy_ai
+
 
 pygame.init()
 
@@ -211,20 +213,7 @@ while running:
     if player.y > HEIGHT - player.size:
         player.y = HEIGHT - player.size
 
-    # Rule-Based AI for goblin movement towards player.
-    if goblin.health > 0:
-        
-        if goblin.x > player.x:
-            goblin.x -= goblin.speed
-
-        if goblin.x < player.x:
-            goblin.x += goblin.speed
-
-        if goblin.y > player.y:
-            goblin.y -= goblin.speed
-
-        if goblin.y < player.y:
-            goblin.y += goblin.speed
+    update_enemy_ai(goblin, player)
 
     player_rect = pygame.Rect(
         player.x,
@@ -276,7 +265,23 @@ while running:
             (goblin.x, goblin.y, goblin.size, goblin.size)
         )
 
-    # Draw loot
+    # Draw loot rendering
+    for loot in loot_items:
+            if loot.collected:
+                continue
+
+            pygame.draw.rect(
+                screen,
+                loot.colour,
+                (
+                    loot.x,
+                    loot.y,
+                    loot.size,
+                    loot.size,
+                )
+            )
+
+    # Loot collection
     for loot in loot_items:
             if loot.collected:
                 continue
