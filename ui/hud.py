@@ -1,3 +1,7 @@
+#Screen Size
+WIDTH = 1200
+HEIGHT = 1000
+
 def draw_hud(screen, player, font):
     health_text = font.render(
         f"Health: {player.health}",
