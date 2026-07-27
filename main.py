@@ -16,6 +16,8 @@ from ui.inventory_ui import (
     SLOT_PADDING
 )
 
+from systems.combat import player_attack, enemy_attack
+
 pygame.init()
 
 #Screen Size
@@ -388,13 +390,14 @@ while running:
 
     # player attack using key 1.
     keys = pygame.key.get_pressed()
-    if keys[pygame.K_1] and player.health > 0:
-        if player_rect.colliderect(goblin_rect):
-            if current_time - player.last_attack_time >= player.attack_cooldown:
-                damage = player.final_stats["damage"]
-                goblin.health -= damage
-                player.last_attack_time = current_time
-                print(f"Player hits goblin for {damage} damage!")
+
+    if keys[pygame.K_1]:
+        player_attack(
+            player,
+            goblin,
+            current_time,
+            player_rect.colliderect(goblin_rect),
+        )
 
     if goblin.health <= 0 and not goblin.reward_given:
         goblin.health = 0
@@ -470,18 +473,12 @@ while running:
             
 
     # goblin attack player if collide.
-    if goblin.health > 0:
-        if player_rect.colliderect(goblin_rect):
-            if current_time - goblin.last_attack_time >= goblin.attack_cooldown:
-                damage = goblin.damage * (1 - player.defence_percent)
-                player.health -= round(damage)
-                if player.health < 0:
-                    player.health = 0
-                goblin.last_attack_time = current_time
-
-                print(
-                    f"Goblin hits for {round(damage)} damage!"
-                )
+    enemy_attack(
+        goblin,
+        player,
+        current_time,
+        player_rect.colliderect(goblin_rect),
+    )
 
     draw_hud(screen, player, font)
 
