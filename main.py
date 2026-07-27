@@ -17,6 +17,7 @@ from ui.inventory_ui import (
 )
 
 from systems.combat import player_attack, enemy_attack
+from systems.inventory import collect_loot
 
 pygame.init()
 
@@ -354,39 +355,6 @@ while running:
         goblin.size,
         goblin.size
     )
-    # Pick up loot
-    for loot in loot_items:
-        if not loot.collected:
-            loot_rect = pygame.Rect(
-                loot.x,
-                loot.y,
-                loot.size,
-                loot.size
-                )
-            
-            if player_rect.colliderect(loot_rect):
-
-                if len(player.inventory) < player.inventory_limit:
-                    loot.collected = True
-                    #Stackable inventory conditionals
-                    if loot.item.stackable:
-                        found = False
-                        
-                        for inv_item in player.inventory:
-                            if inv_item.name == loot.item.name:
-                                inv_item.quantity += 1
-                                found = True
-                                break
-                        if not found:
-                            player.inventory.append(loot.item)
-                    else:
-                        player.inventory.append(loot.item)
-                    
-                    print(f"Picked up {loot.item.name}")
-                    print(player.inventory)
-
-                else:
-                    print(f"Inventory full! Delete or drop an item first.")
 
     # player attack using key 1.
     keys = pygame.key.get_pressed()
@@ -440,17 +408,21 @@ while running:
 
     # Draw loot
     for loot in loot_items:
-            if not loot.collected:
-                pygame.draw.rect(
-                    screen,
-                    loot.colour,
-                    (
-                        loot.x,
-                        loot.y,
-                        loot.size,
-                        loot.size
-                    )
-                )
+            if loot.collected:
+                continue
+
+            loot_rect = pygame.Rect(
+                loot.x,
+                loot.y,
+                loot.size,
+                loot.size
+            )
+
+            if player_rect.colliderect(loot_rect):
+                if collect_loot(player, loot):
+                    print(f"Picked up {loot.item.name}")
+                else:
+                    print(f"Inventory full! Delete or drop an item first.")
 
     # Display item tooltip
     hovered_item = None
