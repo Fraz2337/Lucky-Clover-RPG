@@ -13,7 +13,7 @@ class Player(Entity):
 
         self.level = 1
         self.xp = 0
-        self.xp_to_next_level = 100
+        self.xp_to_next_level = 25
         self.gold = 0
         self.inventory = []
         self.inventory_limit = 20

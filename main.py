@@ -1,7 +1,5 @@
 import pygame
-import random
 
-from entities.entity import Entity 
 from entities.player import Player
 from entities.goblin import Goblin
 
@@ -19,61 +17,22 @@ from ui.inventory_ui import (
 from systems.combat import player_attack, enemy_attack
 from systems.inventory import collect_loot
 from systems.equipment import equipment_inventory_item
+from items.item_database import ITEM_DATABASE
+from items.item_database import create_item
+from systems.loot_system import process_enemy_death
 
 pygame.init()
 
 #Screen Size
 WIDTH = 1200
 HEIGHT = 1000
-#Inventory size
-
-
 
 
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Henry RPG Game")
 
 clock = pygame.time.Clock()
-       
-
-
-
-class Item:
-    def __init__(self, name, damage=0, armour=0, slot=None, stackable=False, quantity=1, durability=100, quality=None, short_description="", bonuses=None):
-        self.name = name
-        self.damage = damage
-        self.armour = armour
-        self.slot = slot
-        self.stackable = stackable
-        self.quantity = quantity
-        self.durability = durability
-        self.quality = quality
-        self.short_description = short_description
-        self.bonuses = bonuses or {}
-        self.forge_level = 0
-        self.enchantments = []
-        self.sockets = []
-        self.owner = None
-    
-    def __repr__(self):
-        if self.stackable:
-            return f"{self.name} x{self.quantity}"
-        return self.name
-    
-    def get_total_bonuses(self):
-        return self.bonuses
-    
-class Loot:
-    def __init__(self, item, x, y):
-        self.item = item
-        self.x = x
-        self.y = y
-        self.size = 20
-        self.colour = (255, 215, 0)
-        self.collected = False
-
-    def __repr__(self):
-        return self.item.name
+           
 
 
 GOBLIN_LOOT_TABLE = {
@@ -81,77 +40,7 @@ GOBLIN_LOOT_TABLE = {
     "iron_sword": 1.00
 }
 
-def roll_loot(loot_table):
-    dropped_items = []
 
-    for item_id, drop_chance in loot_table.items():
-        roll = random.random()
-
-        if roll <= drop_chance:
-            dropped_items.append(create_item(item_id))
-
-    return dropped_items
-
-## Item database to store all the items available in game!
-ITEM_DATABASE = {
-    "rusty_sword": {
-        "name": "Rusty Sword",
-        # "damage":2,
-        "armour": 0,
-        "slot": "weapon",
-        "stackable": False,
-        "durability": 100,
-        "quality": "common",
-        "short_description": "A weak but useful tool carried by novice adventurers.",
-        "bonuses": {
-            "damage": 2,
-            "strength": 1,
-        }
-    },
-    "iron_sword": {
-        "name": "Iron Sword",
-        "damage": 10,
-        "armour": 0,
-        "slot": "weapon",
-        "stackable": False,
-        "durability": 100,
-        "quality": "good",
-        "short_description": "A strong and reliable iron blade carred by novice adventurers.",
-        "bonuses": {
-            "damage": 8,
-            "strength": 2,
-        }
-    },
-    "health_potion": {
-        "name": "Health Potion",
-        "damage": 0,
-        "armour": 0,
-        "slot": None,
-        "stackable": True,
-    },
-    "iron_ore": {
-        "name": "Iron Ore",
-        "damage": 0,
-        "armour": 0,
-        "slot": None,
-        "stackable": True,
-    },
-}
-
-def create_item(item_id):
-    item_data = ITEM_DATABASE[item_id]
-
-    return Item(
-        name=item_data["name"],
-        # damage=item_data["damage"],
-        armour=item_data["armour"],
-        slot=item_data["slot"],
-        stackable=item_data["stackable"],
-        durability=item_data["durability"],
-        quality=item_data["quality"],
-        short_description=item_data["short_description"],
-        bonuses=item_data.get("bonuses", {})
-    )
 rusty_sword = create_item("rusty_sword")
 
 player = Player()
@@ -362,26 +251,12 @@ while running:
             player_rect.colliderect(goblin_rect),
         )
 
-    if goblin.health <= 0 and not goblin.reward_given:
-        goblin.health = 0
-        goblin.reward_given = True
-        dropped_items = roll_loot(GOBLIN_LOOT_TABLE)
-        
-        for item in dropped_items:
-            loot_items.append(
-            Loot(item, goblin.x, goblin.y)
-        )
-
-        player.xp += goblin.xp_reward
-        player.gold += goblin.gold_reward
-
-        print(f"Goblin defeated! + {goblin.xp_reward} XP, +{goblin.gold_reward} gold")
-
-        if player.xp >= player.xp_to_next_level:
-            player.xp -= player.xp_to_next_level
-            player.level += 1
-            player.xp_to_next_level *= 2
-            print(f"Level up! You are now level {player.level}")
+    process_enemy_death(
+        player,
+        goblin,
+        loot_items,
+        GOBLIN_LOOT_TABLE,
+    )
 
     # Draw background
     screen.fill((30, 30, 30))
