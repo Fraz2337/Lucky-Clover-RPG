@@ -168,6 +168,10 @@ while running:
 
         if event.type == pygame.KEYDOWN:
 
+            # if keys[pygame.K_e] and player.inventory:
+            #             player.equip_item(player.inventory[0])
+            #             player.calculate_stats()
+
             if event.key == pygame.K_i:
                 show_inventory = not show_inventory
                 
@@ -206,7 +210,6 @@ while running:
     )
 
     # player attack using key 1.
-    keys = pygame.key.get_pressed()
 
     if keys[pygame.K_1]:
         player_attack(
