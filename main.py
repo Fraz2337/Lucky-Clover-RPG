@@ -23,7 +23,7 @@ from systems.loot_system import process_enemy_death
 from systems.enemy_ai import update_enemy_ai
 from ui.hud import WIDTH, HEIGHT
 from systems.player_controller import update_player_movement
-
+from systems.input_handler import handle_keydown
 
 pygame.init()
 
@@ -167,20 +167,11 @@ while running:
                     drag_offset_y = mouse_y - slot_y
 
         if event.type == pygame.KEYDOWN:
-
-            # if keys[pygame.K_e] and player.inventory:
-            #             player.equip_item(player.inventory[0])
-            #             player.calculate_stats()
-
-            if event.key == pygame.K_i:
-                show_inventory = not show_inventory
-                
-            if event.key == pygame.K_c:
-                show_character = not show_character
-            
-            if event.key == pygame.K_ESCAPE:
-                show_inventory = False
-                show_character = False
+            show_inventory, show_character = handle_keydown(
+                event,
+                show_inventory,
+                show_character,
+            )
 
     current_time = pygame.time.get_ticks() / 1000
 
