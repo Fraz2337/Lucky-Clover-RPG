@@ -2,7 +2,8 @@ import pygame
 
 from systems.enemy_ai import update_enemy_ai
 from systems.loot_system import process_enemy_death
-from systems.combat import enemy_attack
+from systems.combat import enemy_attack, player_attack
+
 
 def update_enemies(enemies, player):
     for enemy in enemies:
@@ -45,3 +46,46 @@ def update_enemy_attacks(
             current_time,
             player_rect.colliderect(enemy_rect)
         )
+
+def update_enemies(enemies, player):
+    for enemy in enemies:
+        update_enemy_ai(enemy, player)
+
+def handle_player_attack(
+        player,
+        enemies,
+        current_time,
+        attack_pressed,
+):
+    if not attack_pressed:
+        return
+
+    player_rect = pygame.Rect(
+        player.x,
+        player.y,
+        player.size,
+        player.size,
+    )
+
+    for enemy in enemies:
+        if enemy.health <= 0:
+            continue
+
+        enemy_rect = pygame.Rect(
+            enemy.x,
+            enemy.y,
+            enemy.size,
+            enemy.size,
+        )
+
+        if not player_rect.colliderect(enemy_rect):
+            continue
+
+        player_attack(
+            player,
+            enemy,
+            current_time,
+            True,
+        )
+        break
+    

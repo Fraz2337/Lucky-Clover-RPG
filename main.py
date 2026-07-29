@@ -5,9 +5,9 @@ from entities.goblin import Goblin
 
 from items.loot_tables import GOBLIN_LOOT_TABLE
 
-from systems.combat import player_attack
+
 # from items.item_database import create_item
-from systems.enemy_system import update_enemy_attacks, process_enemy_deaths, update_enemies
+from systems.enemy_system import update_enemy_attacks, process_enemy_deaths, update_enemies, handle_player_attack
 
 from systems.input_handler import handle_keydown
 from systems.inventory import collect_loot
@@ -105,33 +105,41 @@ while running:
             HEIGHT
         )
 
+    player_rect = pygame.Rect(
+            player.x,
+            player.y,
+            player.size,
+            player.size
+        )
+    
     update_enemies(enemies, player)
 
-    
-    player_rect = pygame.Rect(
-        player.x,
-        player.y,
-        player.size,
-        player.size
+    handle_player_attack(
+        player,
+        enemies,
+        current_time,
+        keys[pygame.K_1],
     )
 
-    if keys[pygame.K_1]:
-        for enemy in enemies:
-            enemy_rect = pygame.Rect(
-                enemy.x,
-                enemy.y,
-                enemy.size,
-                enemy.size,
-            )
+    
 
-            if player_rect.colliderect(enemy_rect):
-                player_attack(
-                    player,
-                    enemy,
-                    current_time,
-                    True,
-                )
-                break
+    # if keys[pygame.K_1]:
+    #     for enemy in enemies:
+    #         enemy_rect = pygame.Rect(
+    #             enemy.x,
+    #             enemy.y,
+    #             enemy.size,
+    #             enemy.size,
+    #         )
+
+    #         if player_rect.colliderect(enemy_rect):
+    #             player_attack(
+    #                 player,
+    #                 enemy,
+    #                 current_time,
+    #                 True,
+    #             )
+    #             break
     
         
     process_enemy_deaths(
@@ -171,17 +179,6 @@ while running:
             SLOT_PADDING,
         )
 
-    
-
-    
-
-    
-
-    
-
-    # player attack using key 1.
-
-    
 
     # Draw background
     screen.fill((30, 30, 30))
