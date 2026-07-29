@@ -24,17 +24,19 @@ from systems.enemy_ai import update_enemy_ai
 from ui.hud import WIDTH, HEIGHT
 from systems.player_controller import update_player_movement
 from systems.input_handler import handle_keydown
+from ui.drag_state import DragState
+from systems.mouse_handler import handle_mouse_event
+
+
+
 
 pygame.init()
-
-
-
 
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Henry RPG Game")
 
 clock = pygame.time.Clock()
-           
+
 
 
 GOBLIN_LOOT_TABLE = {
@@ -62,15 +64,8 @@ show_inventory = False
 show_character = False
 selected_item = None
 selected_index = None
-mouse_down = False
 running = True
-dragging_item = None
-dragging_index = None
-drag_offset_x = 0
-drag_offset_y = 0
-invalid_drop = False
-dropped_successfully = False
-
+drag_state = DragState()
 
 
 # Inventory logic click
@@ -109,62 +104,62 @@ while running:
         if event.type == pygame.QUIT:
             running = False
         
-        if event.type == pygame.MOUSEBUTTONDOWN:
-            if event.button == 1: # left click
-                mouse_down = True
+        # if event.type == pygame.MOUSEBUTTONDOWN:
+        #     if event.button == 1: # left click
+        #         mouse_down = True
 
-        if event.type == pygame.MOUSEBUTTONUP and event.button ==1:
-            invalid_drop = False
-            dropped_successfully = False
+        # if event.type == pygame.MOUSEBUTTONUP and event.button ==1:
+        #     invalid_drop = False
+        #     dropped_successfully = False
 
-            mouse_x, mouse_y = pygame.mouse.get_pos()
+        #     mouse_x, mouse_y = pygame.mouse.get_pos()
 
-            if dragging_item is not None:
-                target_slot = get_equipment_slot_at_mouse(mouse_x, mouse_y)
+        #     if dragging_item is not None:
+        #         target_slot = get_equipment_slot_at_mouse(mouse_x, mouse_y)
 
-                equipped_successfully = False
-                if target_slot is not None:
-                    equipped_successfully = equipment_inventory_item(
-                        player,
-                        dragging_index,
-                        target_slot,
-                )
+        #         equipped_successfully = False
+        #         if target_slot is not None:
+        #             equipped_successfully = equipment_inventory_item(
+        #                 player,
+        #                 dragging_index,
+        #                 target_slot,
+        #         )
 
-                if equipped_successfully:
-                    print("VALID DROP")
-                    print("Target slot:", target_slot)
-                    print("Equipment:", player.equipment)
-                    print("Final stats:", player.final_stats)
+        #         if equipped_successfully:
+        #             print("VALID DROP")
+        #             print("Target slot:", target_slot)
+        #             print("Equipment:", player.equipment)
+        #             print("Final stats:", player.final_stats)
 
-                invalid_drop = not equipped_successfully
+        #         invalid_drop = not equipped_successfully
             
 
                     
-            # reset drag and mouse state       
-            dragging_item = None
-            dragging_index = None
-            mouse_down = False
+        #     # reset drag and mouse state       
+        #     dragging_item = None
+        #     dragging_index = None
+        #     mouse_down = False
 
     
-        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            mouse_down = True
-            mouse_x, mouse_y = pygame.mouse.get_pos()
+        # if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+        #     mouse_down = True
+        #     mouse_x, mouse_y = pygame.mouse.get_pos()
 
-            if show_inventory:
-                slot_index = get_inventory_slot_at_mouse(player, mouse_x, mouse_y)
+        #     if show_inventory:
+        #         slot_index = get_inventory_slot_at_mouse(player, mouse_x, mouse_y)
 
-                if slot_index is not None and slot_index < len(player.inventory):
-                    dragging_item = player.inventory[slot_index]
-                    dragging_index = slot_index
+        #         if slot_index is not None and slot_index < len(player.inventory):
+        #             dragging_item = player.inventory[slot_index]
+        #             dragging_index = slot_index
 
-                    row = slot_index // 5
-                    col = slot_index % 5
+        #             row = slot_index // 5
+        #             col = slot_index % 5
 
-                    slot_x = 175 + col * (SLOT_SIZE + SLOT_PADDING)
-                    slot_y = 170 + row * (SLOT_SIZE + SLOT_PADDING)
+        #             slot_x = 175 + col * (SLOT_SIZE + SLOT_PADDING)
+        #             slot_y = 170 + row * (SLOT_SIZE + SLOT_PADDING)
 
-                    drag_offset_x = mouse_x - slot_x
-                    drag_offset_y = mouse_y - slot_y
+        #             drag_offset_x = mouse_x - slot_x
+        #             drag_offset_y = mouse_y - slot_y
 
         if event.type == pygame.KEYDOWN:
             show_inventory, show_character = handle_keydown(
@@ -172,6 +167,17 @@ while running:
                 show_inventory,
                 show_character,
             )
+
+        handle_mouse_event(
+            event,
+            player,
+            show_inventory,
+            drag_state,
+            get_inventory_slot_at_mouse,
+            get_equipment_slot_at_mouse,
+            SLOT_SIZE,
+            SLOT_PADDING,
+        )
 
     current_time = pygame.time.get_ticks() / 1000
 
@@ -285,7 +291,12 @@ while running:
 
     # Draw Character screen
     if show_character:   
-        draw_character(screen, player, font, dragging_item, invalid_drop)
+        draw_character(
+        screen,
+        player,
+        font,
+        drag_state.dragging_item,
+        drag_state.invalid_drop)
         
             
 
@@ -304,8 +315,14 @@ while running:
         draw_item_tooltip(screen, font, hovered_item)
         #print(f"Hovering over: {hovered_item.name}")
 
-    if dragging_item is not None:
-        draw_drag_item(screen, font, dragging_item, drag_offset_x, drag_offset_y)
+    if drag_state.dragging_item is not None:
+        draw_drag_item(
+        screen,
+        font,
+        drag_state.dragging_item,
+        drag_state.drag_offset_x,
+        drag_state.drag_offset_y,
+        )
 
     pygame.display.flip()
     clock.tick(60)
