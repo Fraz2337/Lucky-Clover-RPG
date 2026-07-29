@@ -50,11 +50,12 @@ rusty_sword = create_item("rusty_sword")
 player = Player()
 # print("=== Initial Player Stats ===")
 # print(player.final_stats)
-goblin = Goblin(500,300)
-enemies = []
-enemies.append(Goblin(500,300))
-enemies.append(Goblin(700,100))
-enemies.append(Goblin(200,500))
+
+enemies = [
+    Goblin(500,300),
+    Goblin(700,100),
+    Goblin(200,500)
+]
 
 loot_items = []
 
@@ -104,63 +105,6 @@ while running:
         if event.type == pygame.QUIT:
             running = False
         
-        # if event.type == pygame.MOUSEBUTTONDOWN:
-        #     if event.button == 1: # left click
-        #         mouse_down = True
-
-        # if event.type == pygame.MOUSEBUTTONUP and event.button ==1:
-        #     invalid_drop = False
-        #     dropped_successfully = False
-
-        #     mouse_x, mouse_y = pygame.mouse.get_pos()
-
-        #     if dragging_item is not None:
-        #         target_slot = get_equipment_slot_at_mouse(mouse_x, mouse_y)
-
-        #         equipped_successfully = False
-        #         if target_slot is not None:
-        #             equipped_successfully = equipment_inventory_item(
-        #                 player,
-        #                 dragging_index,
-        #                 target_slot,
-        #         )
-
-        #         if equipped_successfully:
-        #             print("VALID DROP")
-        #             print("Target slot:", target_slot)
-        #             print("Equipment:", player.equipment)
-        #             print("Final stats:", player.final_stats)
-
-        #         invalid_drop = not equipped_successfully
-            
-
-                    
-        #     # reset drag and mouse state       
-        #     dragging_item = None
-        #     dragging_index = None
-        #     mouse_down = False
-
-    
-        # if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-        #     mouse_down = True
-        #     mouse_x, mouse_y = pygame.mouse.get_pos()
-
-        #     if show_inventory:
-        #         slot_index = get_inventory_slot_at_mouse(player, mouse_x, mouse_y)
-
-        #         if slot_index is not None and slot_index < len(player.inventory):
-        #             dragging_item = player.inventory[slot_index]
-        #             dragging_index = slot_index
-
-        #             row = slot_index // 5
-        #             col = slot_index % 5
-
-        #             slot_x = 175 + col * (SLOT_SIZE + SLOT_PADDING)
-        #             slot_y = 170 + row * (SLOT_SIZE + SLOT_PADDING)
-
-        #             drag_offset_x = mouse_x - slot_x
-        #             drag_offset_y = mouse_y - slot_y
-
         if event.type == pygame.KEYDOWN:
             show_inventory, show_character = handle_keydown(
                 event,
@@ -190,7 +134,8 @@ while running:
         HEIGHT
     )
 
-    update_enemy_ai(goblin, player)
+    for enemy in enemies:
+        update_enemy_ai(enemy, player)
 
     player_rect = pygame.Rect(
         player.x,
@@ -199,29 +144,41 @@ while running:
         player.size
     )
 
-    goblin_rect = pygame.Rect(
-        goblin.x,
-        goblin.y,
-        goblin.size,
-        goblin.size
+    for enemy in enemies:
+        enemy_rect = pygame.Rect(
+        enemy.x,
+        enemy.y,
+        enemy.size,
+        enemy.size
     )
 
     # player attack using key 1.
 
     if keys[pygame.K_1]:
-        player_attack(
-            player,
-            goblin,
-            current_time,
-            player_rect.colliderect(goblin_rect),
-        )
+        for enemy in enemies:
+            enemy_rect = pygame.Rect(
+                enemy.x,
+                enemy.y,
+                enemy.size,
+                enemy.size,
+            )
 
-    process_enemy_death(
-        player,
-        goblin,
-        loot_items,
-        GOBLIN_LOOT_TABLE,
-    )
+            if player_rect.colliderect(enemy_rect):
+                player_attack(
+                    player,
+                    enemy,
+                    current_time,
+                    True,
+                )
+                break
+
+    for enemy in enemies:
+        process_enemy_death(
+            player,
+            enemy,
+            loot_items,
+            GOBLIN_LOOT_TABLE,
+        )
 
     # Draw background
     screen.fill((30, 30, 30))
@@ -234,11 +191,19 @@ while running:
     )
 
     # Draw goblin
-    if goblin.health > 0:
+    for enemy in enemies:
+        if enemy.health <= 0:
+            continue
+
         pygame.draw.rect(
             screen,
-            goblin.colour,
-            (goblin.x, goblin.y, goblin.size, goblin.size)
+            enemy.colour,
+            (
+                enemy.x,
+                enemy.y,
+                enemy.size,
+                enemy.size,
+            )
         )
 
     # Draw loot rendering
@@ -301,11 +266,22 @@ while running:
             
 
     # goblin attack player if collide.
-    enemy_attack(
-        goblin,
+    for enemy in enemies:
+        if enemy.health <= 0:
+            continue
+
+        enemy_rect = pygame.Rect(
+            enemy.x,
+            enemy.y,
+            enemy.size,
+            enemy.size,
+        )
+
+        enemy_attack(
+        enemy,
         player,
         current_time,
-        player_rect.colliderect(goblin_rect),
+        player_rect.colliderect(enemy_rect),
     )
 
     draw_hud(screen, player, font)
