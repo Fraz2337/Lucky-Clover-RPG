@@ -3,30 +3,31 @@ import pygame
 from entities.player import Player
 from entities.goblin import Goblin
 
-from ui.tooltip import draw_item_tooltip
-from ui.hud import draw_hud
-from ui.character_ui import draw_character
-from ui.character_ui import equipment_layout
+from items.loot_tables import GOBLIN_LOOT_TABLE
+
+from systems.combat import player_attack
+# from items.item_database import create_item
+from systems.enemy_system import update_enemy_attacks, process_enemy_deaths, update_enemies
+
+from systems.input_handler import handle_keydown
+from systems.inventory import collect_loot
+from systems.mouse_handler import handle_mouse_event
+from systems.player_controller import update_player_movement
+
+
+from ui.character_ui import (
+    draw_character,
+    equipment_layout,
+)
 from ui.drag_drop import draw_drag_item
-from ui.inventory_ui import draw_inventory
+from ui.drag_state import DragState
+from ui.hud import WIDTH, HEIGHT, draw_hud
+from ui.tooltip import draw_item_tooltip
 from ui.inventory_ui import (
     SLOT_SIZE,
-    SLOT_PADDING
+    SLOT_PADDING,
+    draw_inventory,
 )
-
-from systems.combat import player_attack, enemy_attack
-from systems.inventory import collect_loot
-from systems.equipment import equipment_inventory_item
-from items.item_database import ITEM_DATABASE
-from items.item_database import create_item
-from systems.loot_system import process_enemy_death
-from systems.enemy_ai import update_enemy_ai
-from ui.hud import WIDTH, HEIGHT
-from systems.player_controller import update_player_movement
-from systems.input_handler import handle_keydown
-from ui.drag_state import DragState
-from systems.mouse_handler import handle_mouse_event
-
 
 
 
@@ -39,17 +40,12 @@ clock = pygame.time.Clock()
 
 
 
-GOBLIN_LOOT_TABLE = {
-    "rusty_sword": 1.00, # item drop and drop chance
-    "iron_sword": 1.00
-}
 
 
-rusty_sword = create_item("rusty_sword")
+# rusty_sword = create_item("rusty_sword")
 
 player = Player()
-# print("=== Initial Player Stats ===")
-# print(player.final_stats)
+
 
 enemies = [
     Goblin(500,300),
@@ -63,8 +59,6 @@ font = pygame.font.SysFont(None, 36)
 
 show_inventory = False
 show_character = False
-selected_item = None
-selected_index = None
 running = True
 drag_state = DragState()
 
@@ -100,7 +94,61 @@ def get_equipment_slot_at_mouse(mouse_x, mouse_y):
     return None
 
 while running:
-    # Event handling
+    
+    current_time = pygame.time.get_ticks() / 1000
+    keys = pygame.key.get_pressed()
+
+    update_player_movement(
+            player,
+            keys,
+            WIDTH,
+            HEIGHT
+        )
+
+    update_enemies(enemies, player)
+
+    
+    player_rect = pygame.Rect(
+        player.x,
+        player.y,
+        player.size,
+        player.size
+    )
+
+    if keys[pygame.K_1]:
+        for enemy in enemies:
+            enemy_rect = pygame.Rect(
+                enemy.x,
+                enemy.y,
+                enemy.size,
+                enemy.size,
+            )
+
+            if player_rect.colliderect(enemy_rect):
+                player_attack(
+                    player,
+                    enemy,
+                    current_time,
+                    True,
+                )
+                break
+    
+        
+    process_enemy_deaths(
+        enemies,
+        player,
+        loot_items,
+        GOBLIN_LOOT_TABLE,
+    )
+
+    # goblin attack player if collide.
+    update_enemy_attacks(
+        enemies,
+        player,
+        player_rect,
+        current_time,
+    )
+    
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
@@ -123,62 +171,17 @@ while running:
             SLOT_PADDING,
         )
 
-    current_time = pygame.time.get_ticks() / 1000
+    
 
-    keys = pygame.key.get_pressed()
+    
 
-    update_player_movement(
-        player,
-        keys,
-        WIDTH,
-        HEIGHT
-    )
+    
 
-    for enemy in enemies:
-        update_enemy_ai(enemy, player)
-
-    player_rect = pygame.Rect(
-        player.x,
-        player.y,
-        player.size,
-        player.size
-    )
-
-    for enemy in enemies:
-        enemy_rect = pygame.Rect(
-        enemy.x,
-        enemy.y,
-        enemy.size,
-        enemy.size
-    )
+    
 
     # player attack using key 1.
 
-    if keys[pygame.K_1]:
-        for enemy in enemies:
-            enemy_rect = pygame.Rect(
-                enemy.x,
-                enemy.y,
-                enemy.size,
-                enemy.size,
-            )
-
-            if player_rect.colliderect(enemy_rect):
-                player_attack(
-                    player,
-                    enemy,
-                    current_time,
-                    True,
-                )
-                break
-
-    for enemy in enemies:
-        process_enemy_death(
-            player,
-            enemy,
-            loot_items,
-            GOBLIN_LOOT_TABLE,
-        )
+    
 
     # Draw background
     screen.fill((30, 30, 30))
@@ -208,19 +211,19 @@ while running:
 
     # Draw loot rendering
     for loot in loot_items:
-            if loot.collected:
-                continue
+        if loot.collected:
+            continue
 
-            pygame.draw.rect(
-                screen,
-                loot.colour,
-                (
-                    loot.x,
-                    loot.y,
-                    loot.size,
-                    loot.size,
-                )
-            )
+        pygame.draw.rect(
+            screen,
+            loot.colour,
+            (
+                loot.x,
+                loot.y,
+                loot.size,
+                loot.size,
+            ),
+        )
 
     # Loot collection
     for loot in loot_items:
@@ -257,32 +260,16 @@ while running:
     # Draw Character screen
     if show_character:   
         draw_character(
-        screen,
-        player,
-        font,
-        drag_state.dragging_item,
-        drag_state.invalid_drop)
+            screen,
+            player,
+            font,
+            drag_state.dragging_item,
+            drag_state.invalid_drop,
+        )
         
             
 
-    # goblin attack player if collide.
-    for enemy in enemies:
-        if enemy.health <= 0:
-            continue
-
-        enemy_rect = pygame.Rect(
-            enemy.x,
-            enemy.y,
-            enemy.size,
-            enemy.size,
-        )
-
-        enemy_attack(
-        enemy,
-        player,
-        current_time,
-        player_rect.colliderect(enemy_rect),
-    )
+    
 
     draw_hud(screen, player, font)
 
@@ -293,11 +280,11 @@ while running:
 
     if drag_state.dragging_item is not None:
         draw_drag_item(
-        screen,
-        font,
-        drag_state.dragging_item,
-        drag_state.drag_offset_x,
-        drag_state.drag_offset_y,
+            screen,
+            font,
+            drag_state.dragging_item,
+            drag_state.drag_offset_x,
+            drag_state.drag_offset_y,
         )
 
     pygame.display.flip()
